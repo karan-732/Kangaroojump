@@ -235,7 +235,9 @@
     firstInteractionDone: false,
     inputHold: false,
     lastTapTime: 0,
-    mutedMusic: false
+    mutedMusic: false,
+    dodgeCount: 0,
+    endScreenAudioPlayed: false
   };
 
   const player = {
@@ -274,7 +276,8 @@
     initialized: false,
     feedbackPools: {},
     feedbackRotation: {},
-    feedbackPrimed: false
+    feedbackPrimed: false,
+    currentFeedbackEl: null
   };
 
   const ROOT_FEEDBACK_LIBRARY = Object.freeze({
@@ -287,18 +290,35 @@
       { file: 'Voicy_Paisa hi paisa.mp3', banner: 'BIG BONUS', color: '#FFD700', volume: 0.82 },
       { file: 'Voicy_Ye baburao ka style hai.mp3', banner: 'MEGA STYLE', color: '#FFE08A', volume: 0.8 }
     ],
+    worldcup: [
+      { file: 'level_sabke_niklenge.mp3', banner: 'LEVEL SABKE NIKLENGE!', color: '#8BE9FF', volume: 0.9 }
+    ],
     warning: [
       { file: 'Voicy_Hath mat lagao mera bhai ko.mp3', banner: 'WATCH IT!', color: '#FF9F43', volume: 0.8 },
       { file: 'Voicy_Ha ha ha ha.mp3', banner: 'TOO CLOSE!', color: '#FFB86B', volume: 0.74 }
     ],
     danger: [
+      { file: 'baigan.mp3', banner: 'BAIGAN!', color: '#FF6B6B', volume: 0.85 },
+      { file: 'baap_re.mp3', banner: 'BAAP RE!', color: '#FF8A80', volume: 0.85 },
+      { file: 'oh_my_god_wow.mp3', banner: 'OH MY GOD!', color: '#FF9F43', volume: 0.85 },
+      { file: '7_crore_meme_sound_kbc.mp3', banner: '7 CRORE!', color: '#FFD700', volume: 0.85 },
       { file: 'gta-san-andreas-ah-shit-here-we-go-again_PHjnAqj.mp3', banner: 'OH NO!', color: '#FF6B6B', volume: 0.82 },
       { file: 'Voicy_Hath mat lagao mera bhai ko.mp3', banner: 'DANGER!', color: '#FF8A80', volume: 0.8 },
       { file: 'Voicy_Ha ha ha ha.mp3', banner: 'BAD HIT!', color: '#FF9F43', volume: 0.72 }
     ],
+    dodge6: [
+      { file: 'chal_chl_chal.mp3', banner: 'CHAL CHAL CHAL!', color: '#00FF88', volume: 0.88 }
+    ],
     fail: [
       { file: 'Voicy_ Uthale re deva uthale re baba.mp3', banner: 'RUN FAILED', color: '#FF4D6D', volume: 0.88 },
       { file: 'gta-san-andreas-ah-shit-here-we-go-again_PHjnAqj.mp3', banner: 'GAME OVER', color: '#FF6B6B', volume: 0.82 }
+    ],
+    endHighScore: [
+      { file: '7_crore_meme_sound_kbc.mp3', banner: '7 CRORE! NEW RECORD!', color: '#FFD700', volume: 0.9 },
+      { file: 'oh_my_god_wow.mp3', banner: 'OH MY GOD! NEW RECORD!', color: '#FF6B6B', volume: 0.9 }
+    ],
+    endNormal: [
+      { file: 'level_sabke_niklenge.mp3', banner: 'LEVEL SABKE NIKLENGE!', color: '#8BE9FF', volume: 0.9 }
     ]
   });
 
@@ -395,6 +415,13 @@
     if (!entry) return null;
     const pool = audio.feedbackPools[entry.file];
     if (!pool) return entry;
+    // Stop any currently playing feedback audio (one at a time)
+    if (audio.currentFeedbackEl) {
+      try {
+        audio.currentFeedbackEl.pause();
+        audio.currentFeedbackEl.currentTime = 0;
+      } catch (err) { void err; }
+    }
     let element = pool.elements.find((candidate) => candidate.paused || candidate.ended);
     if (!element) {
       element = pool.elements[pool.cursor % pool.elements.length];
@@ -414,6 +441,7 @@
     }
     const playAttempt = element.play();
     if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
+    audio.currentFeedbackEl = element;
     return entry;
   }
 
@@ -477,7 +505,7 @@
     tone('triangle', 523, 0.08, 0.3);
     tone('triangle', 659, 0.08, 0.3, 0.08);
     tone('triangle', 784, 0.12, 0.35, 0.16);
-    triggerGameplayFeedback(type === 'rewardBig' ? 'rewardBig' : 'reward');
+    triggerGameplayFeedback(type === 'worldcup' ? 'worldcup' : (type === 'rewardBig' ? 'rewardBig' : 'reward'));
   }
   function playSlang() { noiseBurst(0.12, 0.2, 'bandpass', 800); tone('sine', 880, 0.2, 0.4, 0, 700); }
   function playLand() { noiseBurst(0.06, 0.3, 'lowpass', 200); }
@@ -2808,6 +2836,13 @@
       ob.t++;
       if (ob.flashTimer > 0) ob.flashTimer--;
       ob.x -= speed;
+      if (!ob.passed && ob.x + ob.w < pBox.x) {
+        ob.passed = true;
+        game.dodgeCount++;
+        if (game.dodgeCount % 6 === 0) {
+          triggerGameplayFeedback('dodge6');
+        }
+      }
       if (!ob.nearMissed && ob.x + ob.w < pBox.x && Math.abs((ob.x + ob.w) - pBox.x) < 30) {
         ob.nearMissed = true;
         ob.flashTimer = 18;
@@ -3014,7 +3049,7 @@
 
   function collectItem(col, index) {
     const burst = getCollectibleBurstStyle(col);
-    playCollect(col.type === 'worldcup' ? 'rewardBig' : 'reward');
+    playCollect(col.type === 'worldcup' ? 'worldcup' : 'reward');
     batSwingTimer = BAT_SWING_DURATION;
     game.batImpactTimer = col.type === 'worldcup' ? 15 : 10;
     game.batImpactX = col.x;
@@ -3467,6 +3502,8 @@
     lastThemeDistance = 0;
     game.eventBanner = null;
     game.eventBannerQueue.length = 0;
+    game.dodgeCount = 0;
+    game.endScreenAudioPlayed = false;
     batSwingTimer = 0;
     resetPlayer();
     if (startFromMenu) {
@@ -3578,6 +3615,14 @@
     updatePlayer();
     updateFloatTexts();
     game.gameOverTimer++;
+    if (game.gameOverTimer === 72 && !game.endScreenAudioPlayed) {
+      game.endScreenAudioPlayed = true;
+      if (game.newHighScore) {
+        triggerGameplayFeedback('endHighScore');
+      } else {
+        triggerGameplayFeedback('endNormal');
+      }
+    }
     if (game.shareCopiedTimer > 0) game.shareCopiedTimer--;
     if (game.screenShake > 0) game.screenShake--;
   }
