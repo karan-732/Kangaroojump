@@ -13,6 +13,66 @@ Original prompt: bro i want still udidling thats it for scenery and objects thos
 - April 13, 2026: Added obstacle difficulty classes (easy/medium/hard) with class-based weights, pacing gaps, and visual telegraphs.
 - April 13, 2026: Reduced collectible motion noise and simplified pickup bursts to keep asset reads cleaner and future audio overlap lower.
 - April 13, 2026: Added grounded shadow/telegraph polish to improve gameplay readability with minimal structural changes.
+- April 13, 2026: Replaced the single night-only pacing layer with a five-phase Indian progression arc: Day Market, Monsoon Mood, Night Shift, Festival Lights, and Dawn Return.
+- April 13, 2026: Enriched the static background with denser Indian city detail including rooftops, water tanks, a temple dome, a flyover, shopfronts, flags, and parked street silhouettes; scenery remains non-moving.
+- April 13, 2026: Upgraded the kangaroo into a cleaner hero asset and added an automatic bat-swing pickup hit so collectibles now read like contact smacks instead of passive overlap.
+- April 13, 2026: Added lightweight local progression persistence for runs, pickups, best distance, onboarding state, and phases seen; kept high score compatibility.
+- April 13, 2026: Static verification only: inline script parses successfully (`JS syntax OK`); no browser/gameplay test run was done in this pass.
+- April 13, 2026: Changed the post-1000 progression from one-way score bands into a looping late-game phase system that keeps re-rolling Night Shift, Festival Lights, and Dawn Return in a shuffled non-repeating cycle.
+- April 13, 2026: Retuned the jump to be lower and snappier by cutting jump launch strength, reducing hold boost, and increasing gravity; removed airborne re-jump behavior from the active jump path.
+- April 13, 2026: Replaced the mascot-like kangaroo art with a more realistic silhouette emphasizing muzzle, ears, haunches, tail, and hind-leg anatomy while keeping the bat pickup read.
+- April 13, 2026: Static verification re-run after the jump/phase/player pass: inline script still parses successfully (`JS syntax OK`).
+- April 13, 2026: Hardened audio startup so music/SFX only schedule once the AudioContext is actually running after a user gesture; this targets the browser autoplay warning.
+- April 13, 2026: Removed visible phase/stage labels from the HUD, splash, transition UI, and game-over panel so the run reads as endless even though themes still change internally.
+- April 13, 2026: Fixed the splash double-character issue by skipping the in-world gameplay runner draw during the splash scene and keeping only the centered hero character.
+- April 13, 2026: Restored double jump with a tighter second hop and added swipe-down / ArrowDown dodge with a short slide window plus obstacle pass-through handling.
+- April 13, 2026: Dimmed the static city scenery by reducing sky/sun brightness and toning down window/storefront highlights so the background is less harsh.
+- April 13, 2026: Gave the kangaroo another art pass with a cleaner chest/neck transition, longer muzzle read, narrower ears, and stronger pouch definition.
+- April 13, 2026: Slightly extended jump-hold control by increasing the hold window on both the first jump and double jump while keeping the overall jump arc tighter than before.
 - TODO: Verify in-browser that background stays static during splash, countdown, and gameplay.
-- TODO: Verify the night shift triggers cleanly around 1000 score and the easier pacing still feels responsive.
-- TODO: Check that obstacle class telegraphs feel obvious without looking like UI labels, especially on mobile.
+- TODO: Verify each phase transition banner and color shift in-browser, especially Monsoon -> Night -> Festival on mobile screens.
+- TODO: Check the new lower jump against real obstacle timings to confirm it still clears medium/hard obstacles comfortably on mobile.
+- TODO: Check the bat-swing pickup pose timing against real gameplay so it reads clearly without hiding jump arcs.
+- TODO: Verify the new kangaroo silhouette reads cleanly at phone scale and that the torso collision box still feels fair.
+- TODO: Verify touch input feels good on device: tap jump latency, second-tap double jump, and swipe-down dodge should all feel reliable without accidental jumps.
+- TODO: Confirm the autoplay warning is gone in-browser and that audio still starts on the first real user interaction.
+- TODO: Confirm the richer static foreground does not visually compete with low obstacles near the horizon line.
+
+- April 13, 2026: Improved the road with layered asphalt shading, lane-edge paint, repair patches, and moving reflectors so it reads less flat without changing gameplay speed or spacing.
+- April 13, 2026: Reduced phase intensity further by lowering haze/monsoon/festival backdrop strength so theme changes feel less aggressive.
+- April 13, 2026: Added higher-detail passes to key obstacles (rickshaw, bicycle vendor, dog, barricade, LPG cylinder, tiffin, dhol) with trim, materials, spokes, straps, latches, and highlights while keeping the same gameplay hit areas.
+- April 13, 2026: Static verification re-run after road/obstacle polish: inline script still parses successfully (JS syntax OK); no browser/gameplay test run was done in this pass.
+
+- April 13, 2026: Reworked the splash into a cleaner premium card layout with simpler hierarchy, warmer typography, lighter humor, and a more aesthetic start screen while keeping the controls obvious.
+- April 13, 2026: Upgraded shared button styling and the in-run top bar so the overall game presentation feels more polished and less placeholder-like.
+- April 13, 2026: Static verification re-run after the splash/UI polish: inline script still parses successfully (JS syntax OK); no browser/gameplay test run was done in this pass.
+- April 13, 2026: Reworked the game pass for a cleaner premium presentation: simplified splash/start UI, rebuilt the game-over summary card, refreshed the top HUD/progress bar, removed the extra moving city scenery from active rendering, and shifted city changes to a 2000m cadence.
+- April 13, 2026: Retuned jump airtime upward slightly with a stronger first jump, stronger double jump, longer hold window, and lighter gravity.
+- April 13, 2026: Replaced the kangaroo art with a more natural side-profile silhouette and added new regional obstacle art for Mumbai, Delhi, Rajasthan, Assam, and Chennai (dabbawala crate, metro barrier, pot stack, tea crate, coffee can) alongside the existing set.
+- April 13, 2026: Deep-background pass now carries the city identity while the removed mid/far moving city overlay no longer renders; start/end screens now use simpler premium card layouts.
+- April 13, 2026: Static verification re-run after the regional/background/UI rebuild: inline script still parses successfully (`node --check` on extracted inline script).
+- April 13, 2026: Replaced the active kangaroo geometry again with a cleaner side-view anatomy pass emphasizing a smaller skull, longer muzzle, deeper hips, stronger tail base, and more convincing hind-leg proportions so it reads more clearly as a real kangaroo.
+- April 13, 2026: Static verification re-run after the kangaroo anatomy fix: inline script still parses successfully (`node --check` on extracted inline script).
+- TODO: Finish browser verification once Playwright's `chromium-headless-shell` is installed; the user interrupted that install during this pass, so splash/gameplay/game-over screenshots were not captured yet.
+- April 13, 2026: Implemented the new requested pass in `index.html`: the kangaroo is now redrawn as a simpler side-profile with exactly two arms and two legs visible, the bat is always readable, and pickup contact now triggers a bat-hit impact effect instead of reading like a passive overlap.
+- April 13, 2026: Retuned jump and damage feel without changing the core game loop: slightly higher launch, less floaty airtime, harder landings, stronger hit recoil, added hurt tilt, and better impact particles/screen shake.
+- April 13, 2026: Replaced the score-triggered night toggle with a 2000m distance-based scene system that randomly rotates Mumbai/Delhi/Rajasthan/Assam/Chennai and crossfades day/night over ~150 frames instead of snapping.
+- April 13, 2026: Removed the `INDIA TOUR` splash subtitle so the start screen reads only as `KANGAROO RUN`, and refreshed the far background plus regional mid-scenery so it stays cleaner and more static while still feeling more premium.
+- April 13, 2026: Added a World Cup bonus collectible every 500m, updated collectible state output for testing, and refreshed a few weaker regional obstacle drawings (camel, rhino, coconut cart) so the scene rotation looks less placeholder-heavy.
+- April 13, 2026: Static verification re-run after the scene/jump/collectible pass: inline script still parses successfully via `node --check` on the extracted inline script.
+- TODO: Browser-verify the new kangaroo silhouette at phone scale; the art logic is updated, but there are still no fresh screenshots confirming that the 2-arm/2-leg read works in motion.
+- TODO: Browser-verify a 500m transition end-to-end and confirm the scene crossfade, night blend, and regional obstacle spawns all look coherent during active play.
+- TODO: Browser-verify the World Cup collectible cadence and the new bat-hit pickup flash so the effect reads clearly without obscuring nearby obstacles.
+- April 14, 2026: Reduced scene rotation cadence from `2000m` to `500m` per the latest user request; the same transition system still handles the crossfade, only the threshold changed.
+- April 14, 2026: Switched the visible scoring presentation to distance-only meters: top HUD now shows only `m`, splash/game-over best record text also uses meters, and game-over bests now persist from `game.distance` rather than `game.score`.
+- April 14, 2026: Slimmed the kangaroo torso/pouch read and enlarged the bat so the runner no longer reads as overly fat and the bat reads more clearly during pickups.
+- April 14, 2026: Removed the last visible collectible score numbers by replacing floating `+score` text with non-numeric hit labels; static verification still passes with `node --check`.
+- April 14, 2026: Added new background scenery helpers for small taxis, autos, EV scootys, and pink blossom trees, then threaded them through the regional scene art so each 500m rotation feels busier without changing obstacle fairness.
+- April 14, 2026: Static verification re-run after the extra vehicle/tree scenery pass: inline script still parses successfully with `node --check`.
+- April 14, 2026: Softened the kangaroo into a slightly more cartoonish mascot style by warming the fur palette, enlarging the head/eye, rounding the muzzle, and giving the face a friendlier smile/cheek read while keeping the slimmer body and current animation structure.
+- April 14, 2026: Static verification re-run after the cartoon kangaroo art pass: inline script still parses successfully with `node --check`.
+- April 14, 2026: Integrated the real root-folder audio files into gameplay feedback with rotating local voice-reaction pools for reward, warning, danger, and fail events; sounds now preload from the project root and are primed after the first user interaction.
+- April 14, 2026: Added a dedicated animated top-of-screen event banner system so local voice clips and short warning/reward text now trigger together for near misses, hits, rewards, and fail states.
+- April 14, 2026: Wired the new local-audio feedback into existing gameplay events: near miss, obstacle collision, game over, normal collectible pickup, and World Cup bonus pickup now all use root audio plus synchronized banner feedback.
+- April 14, 2026: Static verification re-run after the root-audio feedback pass: inline script still parses successfully with `node --check`.
+- April 14, 2026: Attempted Playwright verification again with the existing web-game client, but browser launch is still blocked because `chromium_headless_shell` is not installed locally.

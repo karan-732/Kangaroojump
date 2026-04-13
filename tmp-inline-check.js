@@ -1,62 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>KANGAROO RUN</title>
-  <style>
-    :root {
-      --bg: #020202;
-      --saffron: #ff6b00;
-      --gold: #ffd700;
-      --sky: #87ceeb;
-      --haze: #ffd580;
-      --ui: rgba(6, 17, 29, 0.82);
-      --panel: #0d1b2a;
-      --teal: #00ced1;
-      --heart: #ff4444;
-    }
 
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-      touch-action: none;
-    }
-
-    html, body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      min-height: 100dvh;
-      overflow: hidden;
-      background: #000;
-      font-family: Arial, Helvetica, sans-serif;
-      overscroll-behavior: none;
-    }
-
-    body {
-      display: grid;
-      place-items: center;
-      overscroll-behavior: none;
-    }
-
-    canvas {
-      display: block;
-      width: 100vw;
-      height: 100vh;
-      max-width: 100%;
-      max-height: 100%;
-      image-rendering: auto;
-      background: #000;
-      overscroll-behavior: none;
-    }
-  </style>
-</head>
-<body>
-  <canvas id="game" aria-label="Kangaroo Run arcade game"></canvas>
-
-  <script>
   'use strict';
 
   // ===== CONSTANTS =====
@@ -3978,6 +3920,4 @@
   resetRun(true);
   lastTime = performance.now();
   rafId = requestAnimationFrame(loop);
-  </script>
-</body>
-</html>
+  
