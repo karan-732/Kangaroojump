@@ -511,7 +511,6 @@
   function playLand() { noiseBurst(0.06, 0.3, 'lowpass', 200); }
   function playNearMiss() {
     tone('sine', 600, 0.2, 0.3, 0, 200);
-    triggerGameplayFeedback('warning');
   }
   function playGameOverMelody() {
     [392, 330, 262, 220, 196].forEach((f, i) => tone('sine', f, 0.2, 0.5 - i * 0.1, i * 0.25));
@@ -2839,9 +2838,6 @@
       if (!ob.passed && ob.x + ob.w < pBox.x) {
         ob.passed = true;
         game.dodgeCount++;
-        if (game.dodgeCount % 6 === 0) {
-          triggerGameplayFeedback('dodge6');
-        }
       }
       if (!ob.nearMissed && ob.x + ob.w < pBox.x && Math.abs((ob.x + ob.w) - pBox.x) < 30) {
         ob.nearMissed = true;
@@ -3520,6 +3516,8 @@
       game.countdownStage = 0;
       game.countdownTime = 0;
       emitParticles(W / 2, H / 2, 10, { colors: ['#FF4444'], minLife: 20, maxLife: 30, minSpeed: 1, maxSpeed: 5, gravity: 0.05 });
+      // Play "ah shit here we go again" at game start
+      playFeedbackEntry('danger', { file: 'gta-san-andreas-ah-shit-here-we-go-again_PHjnAqj.mp3', banner: '', color: '#FF6B6B', volume: 0.82 });
     } else if (next === STATES.SPLASH) {
       resetRun(true);
     } else if (next === STATES.PAUSED) {
@@ -3698,7 +3696,6 @@
     drawFloatingTexts(c);
     drawSlangBurst(c);
     if (!splashOnly) drawTopBar(c);
-    if (!splashOnly) drawEventBanner(c);
     if (game.levelUpTimer > 0 && game.state === STATES.PLAYING) {
       c.globalAlpha = game.levelUpTimer / 60;
       c.fillStyle = '#fff';
