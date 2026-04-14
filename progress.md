@@ -76,3 +76,10 @@ Original prompt: bro i want still udidling thats it for scenery and objects thos
 - April 14, 2026: Wired the new local-audio feedback into existing gameplay events: near miss, obstacle collision, game over, normal collectible pickup, and World Cup bonus pickup now all use root audio plus synchronized banner feedback.
 - April 14, 2026: Static verification re-run after the root-audio feedback pass: inline script still parses successfully with `node --check`.
 - April 14, 2026: Attempted Playwright verification again with the existing web-game client, but browser launch is still blocked because `chromium_headless_shell` is not installed locally.
+- April 14, 2026: Removed all runtime audio from `index.html` for now: deleted Web Audio/HTMLAudio playback, removed the mute/startup audio hooks and speaker control, and kept only the visual event banners for gameplay feedback.
+- April 14, 2026: Static verification re-run after the audio removal pass: extracted inline script still parses successfully with `node --check` via regenerated `tmp-inline-check.js`.
+- April 14, 2026: Reintroduced audio using the root `.ogg` files with strict phrase mapping only: vada/chai/ball/garland/coin, milestone, near miss, combo x3/x5, and game end now resolve to fixed files instead of random/generic feedback groups.
+- April 14, 2026: Added a single-clip HTMLAudio gate with no overlap and a 1-second post-end cooldown; blocked events are skipped, and first input now primes the mapped root audio files for browser playback.
+- April 14, 2026: Removed the old generic reward/danger/end banner-driven audio path from active gameplay flow so mapped slang text drives audio timing directly, while game end plays `ekdumsolid.ogg` immediately on death.
+- April 14, 2026: Static verification re-run after the strict root-audio mapping pass: extracted inline script still parses successfully with `node --check` via regenerated `tmp-inline-check.js`.
+- April 14, 2026: Removed the post-audio 1-second cooldown from the strict phrase-mapped audio gate; no-overlap still applies, but the next allowed clip can start immediately after the current one ends.

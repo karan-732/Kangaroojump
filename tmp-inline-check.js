@@ -89,7 +89,6 @@
   const BUTTONS = {
     splashStart: { x: 105, y: 680, w: 180, h: 50 },
     pause: { x: 342, y: 10, w: 38, h: 38 },
-    mute: { x: 344, y: 46, w: 34, h: 26 },
     pausedResume: { x: 125, y: 400, w: 140, h: 50 },
     pausedQuit: { x: 125, y: 470, w: 140, h: 50 },
     overPlay: { x: 55, y: 556, w: 140, h: 48 },
@@ -174,10 +173,9 @@
     countdownStage: 0,
     countdownTime: 0,
     nearMissCooldown: 0,
-    firstInteractionDone: false,
     inputHold: false,
     lastTapTime: 0,
-    mutedMusic: false
+    dodgeCount: 0
   };
 
   const player = {
@@ -201,121 +199,54 @@
     hurtTilt: 0
   };
 
-  // ===== AUDIO SYSTEM =====
-  const audio = {
-    ctx: null,
-    master: null,
-    sfx: null,
-    music: null,
-    droneOsc: null,
-    droneGain: null,
-    droneLfo: null,
-    nextMusicNote: 0,
-    stepIndex: 0,
-    motifLoop: 0,
-    initialized: false,
-    feedbackPools: {},
-    feedbackRotation: {},
-    feedbackPrimed: false
-  };
-
-  const ROOT_FEEDBACK_LIBRARY = Object.freeze({
-    reward: [
-      { file: 'Voicy_Paisa hi paisa.mp3', banner: 'PAISA HI PAISA', color: '#FFD700', volume: 0.82 },
-      { file: 'Voicy_Ye baburao ka style hai.mp3', banner: 'STYLE BONUS', color: '#FFE08A', volume: 0.8 }
-    ],
-    rewardBig: [
-      { file: 'Voicy_ 25 din main paisa double.mp3', banner: 'DOUBLE REWARD', color: '#FFF08A', volume: 0.84 },
-      { file: 'Voicy_Paisa hi paisa.mp3', banner: 'BIG BONUS', color: '#FFD700', volume: 0.82 },
-      { file: 'Voicy_Ye baburao ka style hai.mp3', banner: 'MEGA STYLE', color: '#FFE08A', volume: 0.8 }
-    ],
-    warning: [
-      { file: 'Voicy_Hath mat lagao mera bhai ko.mp3', banner: 'WATCH IT!', color: '#FF9F43', volume: 0.8 },
-      { file: 'Voicy_Ha ha ha ha.mp3', banner: 'TOO CLOSE!', color: '#FFB86B', volume: 0.74 }
-    ],
-    danger: [
-      { file: 'gta-san-andreas-ah-shit-here-we-go-again_PHjnAqj.mp3', banner: 'OH NO!', color: '#FF6B6B', volume: 0.82 },
-      { file: 'Voicy_Hath mat lagao mera bhai ko.mp3', banner: 'DANGER!', color: '#FF8A80', volume: 0.8 },
-      { file: 'Voicy_Ha ha ha ha.mp3', banner: 'BAD HIT!', color: '#FF9F43', volume: 0.72 }
-    ],
-    fail: [
-      { file: 'Voicy_ Uthale re deva uthale re baba.mp3', banner: 'RUN FAILED', color: '#FF4D6D', volume: 0.88 },
-      { file: 'gta-san-andreas-ah-shit-here-we-go-again_PHjnAqj.mp3', banner: 'GAME OVER', color: '#FF6B6B', volume: 0.82 }
-    ]
+  const PHRASE_AUDIO_FILES = Object.freeze({
+    'BINDAAS!': 'Bindas.ogg',
+    'CUTTING CHAI MOMENT!': 'cuttingchaimoment.ogg',
+    'MAST SHOT!': 'mastshot.ogg',
+    'ARRE WAH!': 'aarewaah.ogg',
+    'JUGAAD!': 'Jugaad.ogg',
+    'EKDUM SOLID!': 'ekdumsolid.ogg',
+    'ARREY BAAP RE!': 'aarebaapre.ogg',
+    'JUGAAD COMBO!': 'Jugaad.ogg',
+    'EKDUM SOLID COMBO! x5': 'ekdumsolid.ogg',
+    GAME_END: 'ekdumsolid.ogg'
   });
 
-  function initAudio() {
-    if (audio.initialized) return;
-    initFeedbackAudio();
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (AudioCtx) {
-      audio.ctx = new AudioCtx();
-      audio.master = audio.ctx.createGain();
-      audio.master.gain.value = 0.8;
-      audio.sfx = audio.ctx.createGain();
-      audio.sfx.gain.value = 1;
-      audio.music = audio.ctx.createGain();
-      audio.music.gain.value = 0.25;
-      const comp = audio.ctx.createDynamicsCompressor();
-      audio.sfx.connect(comp);
-      audio.music.connect(comp);
-      comp.connect(audio.master);
-      audio.master.connect(audio.ctx.destination);
-      createDrone();
-    }
-    audio.initialized = true;
+  const phraseAudio = {
+    clips: {},
+    current: null,
+    primed: false,
+    initialized: false
+  };
+
+  function initPhraseAudio() {
+    if (phraseAudio.initialized) return;
+    const uniqueFiles = [...new Set(Object.values(PHRASE_AUDIO_FILES))];
+    uniqueFiles.forEach((file) => {
+      const clip = new Audio(encodeURI(file));
+      clip.preload = 'auto';
+      clip.addEventListener('ended', () => {
+        if (phraseAudio.current !== clip) return;
+        phraseAudio.current = null;
+      });
+      phraseAudio.clips[file] = clip;
+    });
+    phraseAudio.initialized = true;
   }
 
-  function resumeAudio() {
-    if (!audio.initialized) initAudio();
-    if (audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume();
-    primeFeedbackAudio();
-    if (audio.ctx && !audio.nextMusicNote) {
-      audio.nextMusicNote = audio.ctx.currentTime + 0.05;
-      audio.stepIndex = 0;
-    }
-  }
-
-  function initFeedbackAudio() {
-    const uniqueFiles = new Map();
-    Object.values(ROOT_FEEDBACK_LIBRARY).flat().forEach((entry) => {
-      if (uniqueFiles.has(entry.file)) return;
-      uniqueFiles.set(entry.file, entry);
-    });
-
-    uniqueFiles.forEach((entry, file) => {
-      audio.feedbackPools[file] = {
-        volume: entry.volume,
-        cursor: 0,
-        elements: Array.from({ length: 2 }, () => {
-          const el = new Audio(encodeURI(file));
-          el.preload = 'auto';
-          el.volume = game.mutedMusic ? 0 : entry.volume;
-          el.load();
-          return el;
-        })
-      };
-    });
-
-    Object.keys(ROOT_FEEDBACK_LIBRARY).forEach((group) => {
-      audio.feedbackRotation[group] = 0;
-    });
-  }
-
-  function primeFeedbackAudio() {
-    if (audio.feedbackPrimed) return;
-    audio.feedbackPrimed = true;
-    Object.values(audio.feedbackPools).forEach((pool) => {
-      const el = pool.elements[0];
-      if (!el) return;
-      el.muted = true;
-      const playAttempt = el.play();
+  function primePhraseAudio() {
+    initPhraseAudio();
+    if (phraseAudio.primed) return;
+    phraseAudio.primed = true;
+    Object.values(phraseAudio.clips).forEach((clip) => {
+      clip.muted = true;
+      const playAttempt = clip.play();
       if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
       setTimeout(() => {
         try {
-          el.pause();
-          el.currentTime = 0;
-          el.muted = game.mutedMusic;
+          clip.pause();
+          clip.currentTime = 0;
+          clip.muted = false;
         } catch (err) {
           void err;
         }
@@ -323,202 +254,44 @@
     });
   }
 
-  function chooseFeedbackEntry(group) {
-    const list = ROOT_FEEDBACK_LIBRARY[group];
-    if (!list || !list.length) return null;
-    const idx = audio.feedbackRotation[group] % list.length;
-    audio.feedbackRotation[group] = (audio.feedbackRotation[group] + 1) % list.length;
-    return list[idx];
-  }
-
-  function playFeedbackEntry(group, entryOverride = null) {
-    if (!audio.initialized) initAudio();
-    const entry = entryOverride || chooseFeedbackEntry(group);
-    if (!entry) return null;
-    const pool = audio.feedbackPools[entry.file];
-    if (!pool) return entry;
-    let element = pool.elements.find((candidate) => candidate.paused || candidate.ended);
-    if (!element) {
-      element = pool.elements[pool.cursor % pool.elements.length];
-      pool.cursor = (pool.cursor + 1) % pool.elements.length;
-      try {
-        element.pause();
-      } catch (err) {
-        void err;
-      }
-    }
-    element.muted = game.mutedMusic;
-    element.volume = game.mutedMusic ? 0 : entry.volume;
+  function requestPhraseAudio(key) {
+    const file = PHRASE_AUDIO_FILES[key];
+    if (!file) return false;
+    initPhraseAudio();
+    if (phraseAudio.current) return false;
+    const clip = phraseAudio.clips[file];
+    if (!clip) return false;
+    phraseAudio.current = clip;
     try {
-      element.currentTime = 0;
+      clip.pause();
+      clip.currentTime = 0;
+      clip.muted = false;
     } catch (err) {
       void err;
     }
-    const playAttempt = element.play();
-    if (playAttempt && typeof playAttempt.catch === 'function') playAttempt.catch(() => {});
-    return entry;
-  }
-
-  function createDrone() {
-    if (!audio.ctx) return;
-    audio.droneOsc = audio.ctx.createOscillator();
-    audio.droneGain = audio.ctx.createGain();
-    audio.droneLfo = audio.ctx.createOscillator();
-    const lfoGain = audio.ctx.createGain();
-    audio.droneOsc.type = 'sine';
-    audio.droneOsc.frequency.value = 130;
-    audio.droneGain.gain.value = 0.05;
-    audio.droneLfo.frequency.value = 5;
-    lfoGain.gain.value = 3;
-    audio.droneLfo.connect(lfoGain);
-    lfoGain.connect(audio.droneOsc.frequency);
-    audio.droneOsc.connect(audio.droneGain);
-    audio.droneGain.connect(audio.music);
-    audio.droneOsc.start();
-    audio.droneLfo.start();
-  }
-
-  function tone(type, freq, duration, volume, start = 0, sweepTo = null, target = null) {
-    if (!audio.ctx) return;
-    const t = audio.ctx.currentTime + start;
-    const osc = audio.ctx.createOscillator();
-    const gain = audio.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    if (sweepTo !== null) osc.frequency.exponentialRampToValueAtTime(Math.max(1, sweepTo), t + duration);
-    gain.gain.setValueAtTime(volume, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
-    osc.connect(gain);
-    gain.connect(target || audio.sfx);
-    osc.start(t);
-    osc.stop(t + duration + 0.02);
-  }
-
-  function noiseBurst(duration, volume, filterType, freq, target = null) {
-    if (!audio.ctx) return;
-    const buffer = audio.ctx.createBuffer(1, Math.floor(audio.ctx.sampleRate * duration), audio.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-    const src = audio.ctx.createBufferSource();
-    const filter = audio.ctx.createBiquadFilter();
-    const gain = audio.ctx.createGain();
-    src.buffer = buffer;
-    filter.type = filterType;
-    filter.frequency.value = freq;
-    gain.gain.value = volume;
-    gain.gain.exponentialRampToValueAtTime(0.0001, audio.ctx.currentTime + duration);
-    src.connect(filter);
-    filter.connect(gain);
-    gain.connect(target || audio.sfx);
-    src.start();
-  }
-
-  function playJump() { tone('sine', 220, 0.15, 0.4, 0, 440); }
-  function playDoubleJump() { tone('sine', 330, 0.1, 0.35, 0, 660); tone('sine', 440, 0.1, 0.35, 0.05, 880); }
-  function playCollect(type = 'reward') {
-    tone('triangle', 523, 0.08, 0.3);
-    tone('triangle', 659, 0.08, 0.3, 0.08);
-    tone('triangle', 784, 0.12, 0.35, 0.16);
-    triggerGameplayFeedback(type === 'rewardBig' ? 'rewardBig' : 'reward');
-  }
-  function playSlang() { noiseBurst(0.12, 0.2, 'bandpass', 800); tone('sine', 880, 0.2, 0.4, 0, 700); }
-  function playLand() { noiseBurst(0.06, 0.3, 'lowpass', 200); }
-  function playNearMiss() {
-    tone('sine', 600, 0.2, 0.3, 0, 200);
-    triggerGameplayFeedback('warning');
-  }
-  function playGameOverMelody() {
-    [392, 330, 262, 220, 196].forEach((f, i) => tone('sine', f, 0.2, 0.5 - i * 0.1, i * 0.25));
-    triggerGameplayFeedback('fail');
-  }
-  function playLoseLife() {
-    if (audio.ctx) {
-      const t = audio.ctx.currentTime;
-      const osc = audio.ctx.createOscillator();
-      const gain = audio.ctx.createGain();
-      const lfo = audio.ctx.createOscillator();
-      const lfoGain = audio.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(400, t);
-      osc.frequency.linearRampToValueAtTime(200, t + 0.2);
-      osc.frequency.linearRampToValueAtTime(300, t + 0.35);
-      osc.frequency.linearRampToValueAtTime(100, t + 0.6);
-      gain.gain.value = 0.4;
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-      lfo.frequency.value = 8;
-      lfoGain.gain.value = 0.12;
-      lfo.connect(lfoGain);
-      lfoGain.connect(gain.gain);
-      osc.connect(gain);
-      gain.connect(audio.sfx);
-      osc.start(t);
-      lfo.start(t);
-      osc.stop(t + 0.65);
-      lfo.stop(t + 0.65);
-    }
-    triggerGameplayFeedback('danger');
-  }
-
-  function scheduleMusic() {
-    if (!audio.ctx || game.mutedMusic) return;
-    const stepDur = 0.1;
-    const lookAhead = 0.4;
-    while (audio.nextMusicNote && audio.nextMusicNote < audio.ctx.currentTime + lookAhead) {
-      const step = audio.stepIndex % 16;
-      const t = audio.nextMusicNote;
-      if (step === 0 || step === 4 || step === 8 || step === 12) triggerBeat(t, 60, 'sine', 0.4, 0.08);
-      if (step === 2 || step === 10) triggerBeat(t, 120, 'triangle', 0.25, 0.06);
-      if (step === 6 || step === 13 || step === 14) triggerBeat(t, 300, 'triangle', 0.2, 0.04);
-      if (step === 0 && audio.motifLoop % 2 === 0) {
-        [392, 440, 523, 392].forEach((f, i) => triggerBeat(t + i * 0.3, f, 'triangle', 0.08, 0.22));
-      }
-      audio.stepIndex++;
-      if (audio.stepIndex % 16 === 0) audio.motifLoop++;
-      audio.nextMusicNote += stepDur;
-    }
-  }
-
-  function triggerBeat(t, freq, type, volume, decay) {
-    if (!audio.ctx) return;
-    const osc = audio.ctx.createOscillator();
-    const gain = audio.ctx.createGain();
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, t);
-    gain.gain.setValueAtTime(volume, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-    osc.connect(gain);
-    gain.connect(audio.music);
-    osc.start(t);
-    osc.stop(t + decay + 0.02);
-  }
-
-  function toggleMute() {
-    game.mutedMusic = !game.mutedMusic;
-    if (audio.music) audio.music.gain.value = game.mutedMusic ? 0 : 0.25;
-    Object.values(audio.feedbackPools).forEach((pool) => {
-      pool.elements.forEach((el) => {
-        el.muted = game.mutedMusic;
-        el.volume = game.mutedMusic ? 0 : pool.volume;
+    const playAttempt = clip.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        if (phraseAudio.current === clip) phraseAudio.current = null;
       });
-    });
-  }
-
-  function pushEventBanner(text, color, accent = '#111') {
-    const payload = { text, color, accent, life: 0, maxLife: 54 };
-    if (game.eventBanner) {
-      if (game.eventBannerQueue.length > 2) game.eventBannerQueue.shift();
-      game.eventBannerQueue.push(payload);
-      return;
     }
-    game.eventBanner = payload;
+    return true;
   }
 
-  function triggerGameplayFeedback(group, entryOverride = null) {
-    const entry = playFeedbackEntry(group, entryOverride);
-    if (!entry) return null;
-    pushEventBanner(entry.banner, entry.color);
-    return entry;
+  function playJump() {}
+  function playDoubleJump() {}
+  function playCollect() {}
+  function playSlang(slang) {
+    if (!slang) return;
+    requestPhraseAudio(slang.text);
   }
+  function playLand() {}
+  function playNearMiss() {}
+  function playGameEnd() {
+    requestPhraseAudio('GAME_END');
+  }
+  function playGameOverMelody() {}
+  function playLoseLife() {}
 
   function updateEventBanner() {
     if (!game.eventBanner) {
@@ -1514,38 +1287,6 @@
     c.fillText('≡', x, y);
   }
 
-  function drawSpeaker(c, x, y, muted) {
-    c.save();
-    c.translate(x, y);
-    c.strokeStyle = '#fff';
-    c.fillStyle = '#fff';
-    c.lineWidth = 2;
-    c.beginPath();
-    c.moveTo(-10, -5);
-    c.lineTo(-4, -5);
-    c.lineTo(2, -11);
-    c.lineTo(2, 11);
-    c.lineTo(-4, 5);
-    c.lineTo(-10, 5);
-    c.closePath();
-    c.fill();
-    if (muted) {
-      c.strokeStyle = '#ff6b6b';
-      c.beginPath();
-      c.moveTo(6, -8);
-      c.lineTo(14, 8);
-      c.moveTo(14, -8);
-      c.lineTo(6, 8);
-      c.stroke();
-    } else {
-      c.beginPath();
-      c.arc(4, 0, 6, -0.8, 0.8);
-      c.arc(6, 0, 10, -0.8, 0.8);
-      c.stroke();
-    }
-    c.restore();
-  }
-
   function drawButton(c, rect, text, fillA, fillB, pulse = 1, dark = false) {
     c.save();
     const cx = rect.x + rect.w / 2;
@@ -2536,7 +2277,7 @@
     game.gameOverTimer = 0;
     player.deadTimer = 72;
     emitParticles(player.x + 10, player.y - 60, 40, { colors: ['#ff4444', '#FF6B00', '#FFD700'], minSpeed: 2, maxSpeed: 10, gravity: 0.3, minLife: 60, maxLife: 80 });
-    playGameOverMelody();
+    playGameEnd();
     if (game.distance > game.highScore) {
       game.highScore = game.distance;
       game.newHighScore = true;
@@ -2750,6 +2491,10 @@
       ob.t++;
       if (ob.flashTimer > 0) ob.flashTimer--;
       ob.x -= speed;
+      if (!ob.passed && ob.x + ob.w < pBox.x) {
+        ob.passed = true;
+        game.dodgeCount++;
+      }
       if (!ob.nearMissed && ob.x + ob.w < pBox.x && Math.abs((ob.x + ob.w) - pBox.x) < 30) {
         ob.nearMissed = true;
         ob.flashTimer = 18;
@@ -2956,7 +2701,7 @@
 
   function collectItem(col, index) {
     const burst = getCollectibleBurstStyle(col);
-    playCollect(col.type === 'worldcup' ? 'rewardBig' : 'reward');
+    playCollect(col.type === 'worldcup' ? 'worldcup' : 'reward');
     batSwingTimer = BAT_SWING_DURATION;
     game.batImpactTimer = col.type === 'worldcup' ? 15 : 10;
     game.batImpactX = col.x;
@@ -2975,9 +2720,9 @@
     });
     emitParticles(col.x, col.y, burst.count, { colors: burst.colors, minRadius: 2, maxRadius: 6, minSpeed: 2, maxSpeed: 6, gravity: 0.22, minLife: 28, maxLife: 42 });
     triggerSlangBurst(col.slang, col.x, col.y, false);
-    if (game.combo === 3) triggerSlangBurst(SLANGS.COMBO3, col.x, col.y, false, true);
+    if (game.combo === 3) triggerSlangBurst(SLANGS.COMBO3, col.x, col.y, false);
     if (game.combo === 5) {
-      triggerSlangBurst(SLANGS.COMBO5, col.x, col.y, false, true);
+      triggerSlangBurst(SLANGS.COMBO5, col.x, col.y, false);
       emitParticles(col.x, col.y, 16, { colors: ['#FFD700', '#FF6B00', '#FFFFFF'], minRadius: 2, maxRadius: 7, minSpeed: 2, maxSpeed: 7, gravity: 0.16, minLife: 24, maxLife: 38 });
     }
     col.active = false;
@@ -3047,7 +2792,7 @@
     game.currentSlangBurst = payload;
     game.flashColor = slang.color;
     if (!skipParticles && x !== null && y !== null) emitParticles(x, y, 10, { colors: PALETTE, minRadius: 4, maxRadius: 8, minSpeed: 4, maxSpeed: 8, gravity: 0.3, minLife: 20, maxLife: 30 });
-    if (!noSound) playSlang();
+    if (!noSound) playSlang(slang);
   }
 
   function updateSlangBurst() {
@@ -3055,7 +2800,7 @@
       if (game.slangQueue.length) {
         game.currentSlangBurst = game.slangQueue.shift();
         game.flashColor = game.currentSlangBurst.slang.color;
-        if (!game.currentSlangBurst.noSound) playSlang();
+        if (!game.currentSlangBurst.noSound) playSlang(game.currentSlangBurst.slang);
       }
       return;
     }
@@ -3065,7 +2810,7 @@
       if (game.slangQueue.length) {
         game.currentSlangBurst = game.slangQueue.shift();
         game.flashColor = game.currentSlangBurst.slang.color;
-        if (!game.currentSlangBurst.noSound) playSlang();
+        if (!game.currentSlangBurst.noSound) playSlang(game.currentSlangBurst.slang);
       }
     }
   }
@@ -3151,7 +2896,6 @@
     c.textAlign = 'right';
     c.fillText(`🗣 ${game.slangUnique.size}`, 326, 46);
     drawPauseIcon(c, 362, 28);
-    drawSpeaker(c, 361, 58, game.mutedMusic);
   }
 
   function drawProgressBar(c) {
@@ -3409,6 +3153,7 @@
     lastThemeDistance = 0;
     game.eventBanner = null;
     game.eventBannerQueue.length = 0;
+    game.dodgeCount = 0;
     batSwingTimer = 0;
     resetPlayer();
     if (startFromMenu) {
@@ -3463,7 +3208,7 @@
     game.distance += game.worldSpeed * 0.12;
     updateLevel();
     if (game.score >= game.scoreMilestone) {
-      triggerSlangBurst(SLANGS.SOLID, W / 2, 200, false, true);
+      triggerSlangBurst(SLANGS.SOLID, W / 2, 200, false);
       for (let i = 0; i < 30; i++) emitParticles(rand(0, W), 0, 1, { colors: PALETTE, minRadius: 4, maxRadius: 9, minSpeed: 2, maxSpeed: 5, gravity: 0.05, minLife: 80, maxLife: 120, spread: 0.8, dir: Math.PI / 2 });
       game.scoreMilestone += 500;
     }
@@ -3526,7 +3271,6 @@
 
   function update() {
     game.frame++;
-    scheduleMusic();
     if (game.state === STATES.SPLASH) updateSplash();
     else if (game.state === STATES.COUNTDOWN) updateCountdown();
     else if (game.state === STATES.PLAYING) updatePlaying();
@@ -3595,7 +3339,6 @@
     drawFloatingTexts(c);
     drawSlangBurst(c);
     if (!splashOnly) drawTopBar(c);
-    if (!splashOnly) drawEventBanner(c);
     if (game.levelUpTimer > 0 && game.state === STATES.PLAYING) {
       c.globalAlpha = game.levelUpTimer / 60;
       c.fillStyle = '#fff';
@@ -3705,12 +3448,7 @@
 
   function handlePrimaryDown(x, y) {
     const hitSlop = TOUCH_HIT_SLOP;
-    if (!game.firstInteractionDone) {
-      game.firstInteractionDone = true;
-      resumeAudio();
-    } else {
-      resumeAudio();
-    }
+    primePhraseAudio();
     if (game.state === STATES.SPLASH) {
       setState(STATES.COUNTDOWN);
       return;
@@ -3718,7 +3456,6 @@
     if (game.state === STATES.COUNTDOWN) return;
     if (game.state === STATES.PLAYING) {
       if (inRect(x, y, BUTTONS.pause, hitSlop)) return setState(STATES.PAUSED);
-      if (inRect(x, y, BUTTONS.mute, hitSlop)) return toggleMute();
       const now = performance.now();
       if (!player.onGround && now - game.lastTapTime < 300) jump();
       else jump();
@@ -3764,17 +3501,13 @@
   }, { passive: false });
 
   window.addEventListener('keydown', (e) => {
-    if (['Space', 'ArrowUp', 'Escape', 'KeyM'].includes(e.code)) e.preventDefault();
-    if (!game.firstInteractionDone) {
-      game.firstInteractionDone = true;
-      resumeAudio();
-    }
+    primePhraseAudio();
+    if (['Space', 'ArrowUp', 'Escape'].includes(e.code)) e.preventDefault();
     if (e.code === 'Escape') {
       if (game.state === STATES.PLAYING) setState(STATES.PAUSED);
       else if (game.state === STATES.PAUSED) setState(STATES.PLAYING);
       return;
     }
-    if (e.code === 'KeyM') return toggleMute();
     if (e.code === 'Space' || e.code === 'ArrowUp') {
       if (game.state === STATES.SPLASH) setState(STATES.COUNTDOWN);
       else if (game.state === STATES.PLAYING) {
@@ -3914,6 +3647,7 @@
     }
   };
 
+  initPhraseAudio();
   buildFarLayer();
   initBackgroundObjects();
   resizeCanvas();
